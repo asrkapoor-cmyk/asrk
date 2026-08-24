@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Wealth Planner</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A2340">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============ DESIGN TOKENS ============
+   --navy #0A2340 / --navy2 #123B6B : primary brand, headers, text
+   --red  #E3001B                  : alerts, CTAs, brand accent
+   --gold #C9A227 / --gold-light #F0D98C : growth, highlights, bullets
+   --cream #F6F1E4 / --paper #FBF8F0     : warm backgrounds
+   Type: 'Sora' (display/numbers), 'Inter' (body/UI)
+   Signature: the "growth arc" — a rising line motif used as a
+   section divider and inside the compounding chart, tying every
+   screen back to the idea of compounding growth.
+================================================= */
+:root{
+  --navy:#0A2340; --navy2:#123B6B; --red:#E3001B; --red2:#FF4F5E;
+  --gold:#C9A227; --gold-light:#F0D98C; --cream:#F6F1E4; --paper:#FBF8F0;
+  --ink:#1C1B18; --muted:#6b6455; --line:#E7DFC9;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink);
+  -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;
+}
+h1,h2,h3,.display{ font-family:'Sora',sans-serif; }
+button{ font-family:inherit; border:none; background:none; cursor:pointer; }
+input, select{ font-family:inherit; }
+
+#app{
+  max-width:480px; margin:0 auto; min-height:100vh; background:var(--paper);
+  display:flex; flex-direction:column; position:relative;
+  box-shadow:0 0 40px rgba(0,0,0,.12);
+}
+
+/* ---------- Top bar ---------- */
+#topbar{
+  background:var(--navy); padding:calc(14px + var(--safe-top)) 18px 14px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:30;
+}
+#topbar .brand{ display:flex; align-items:center; gap:10px; }
+#topbar .brand-icon{ width:30px; height:30px; }
+#topbar .brand-text{ color:#fff; font-weight:800; font-size:17px; letter-spacing:.2px; }
+#topbar .brand-text small{ display:block; font-family:'Inter',sans-serif; font-weight:400; font-size:10px; color:var(--gold-light); letter-spacing:.5px; text-transform:uppercase; }
+#topbar .advisor-chip{
+  display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.08);
+  border:1px solid rgba(240,217,140,.35); border-radius:20px; padding:6px 10px;
+}
+#topbar .advisor-chip img{ width:20px; height:20px; border-radius:50%; }
+#topbar .advisor-chip span{ color:#fff; font-size:11px; font-weight:600; }
+
+/* ---------- Screens ---------- */
+#content{ flex:1; overflow-y:auto; padding-bottom:90px; -webkit-overflow-scrolling:touch; }
+.screen{ display:none; padding:20px 18px 8px; animation:fadeUp .35s ease; }
+.screen.active{ display:block; }
+@keyframes fadeUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+.eyebrow{ font-family:'Sora',sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--red); font-weight:700; margin-bottom:6px; }
+.h1{ font-size:22px; font-weight:800; color:var(--navy); line-height:1.25; margin-bottom:4px; }
+.lead{ font-size:13.5px; color:var(--muted); line-height:1.5; margin-bottom:18px; }
+
+/* growth-arc divider — the signature element */
+.arc-divider{ width:100%; height:20px; margin:18px 0; opacity:.9; }
+
+/* ---------- Cards & inputs ---------- */
+.card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+.card-tight{ padding:14px; }
+.field{ margin-bottom:14px; }
+.field label{ display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:6px; }
+.field .hint{ font-size:10.5px; color:var(--muted); margin-top:4px; }
+.input-row{ display:flex; align-items:center; border:1.5px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
+.input-row .prefix{ padding:11px 10px; background:var(--cream); color:var(--navy); font-weight:700; font-size:13px; }
+.input-row input{ flex:1; border:none; outline:none; padding:11px 10px; font-size:15px; font-weight:600; color:var(--ink); width:100%; min-width:0; }
+select.select-box{ width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 10px; font-size:14px; font-weight:600; color:var(--ink); background:#fff; }
+.slider-row{ display:flex; align-items:center; gap:10px; }
+input[type=range]{ flex:1; accent-color:var(--gold); }
+.slider-val{ min-width:52px; text-align:right; font-weight:700; color:var(--navy); font-size:13px; }
+
+.chip-group{ display:flex; flex-wrap:wrap; gap:8px; }
+.chip{
+  border:1.5px solid var(--line); border-radius:20px; padding:8px 14px; font-size:12.5px;
+  font-weight:600; color:var(--navy); background:#fff;
+}
+.chip.active{ background:var(--navy); border-color:var(--navy); color:#fff; }
+
+.btn-primary{
+  width:100%; background:linear-gradient(135deg, var(--red) 0%, var(--red2) 100%);
+  color:#fff; font-weight:700; font-size:14.5px; padding:14px; border-radius:12px;
+  box-shadow:0 8px 20px rgba(227,0,27,.25);
+}
+.btn-secondary{
+  width:100%; background:var(--navy); color:#fff; font-weight:700; font-size:14px;
+  padding:13px; border-radius:12px;
+}
+.btn-ghost{
+  width:100%; background:#fff; border:1.5px solid var(--navy); color:var(--navy);
+  font-weight:700; font-size:14px; padding:12px; border-radius:12px;
+}
+
+.result-box{
+  background:linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  border-radius:14px; padding:18px; color:#fff; margin-top:4px;
+}
+.result-box .rlabel{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold-light); font-weight:700; margin-bottom:4px; }
+.result-box .rvalue{ font-family:'Sora',sans-serif; font-weight:800; font-size:26px; margin-bottom:2px; }
+.result-box .rsub{ font-size:11.5px; color:#C9D6E8; }
+.result-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.result-grid .rg-item{ background:rgba(255,255,255,.08); border-radius:10px; padding:10px; }
+.result-grid .rg-item .k{ font-size:9.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--gold-light); }
+.result-grid .rg-item .v{ font-family:'Sora',sans-serif; font-weight:700; font-size:15px; margin-top:2px; }
+
+/* ---------- Bottom nav ---------- */
+#bottomnav{
+  position:sticky; bottom:0; left:0; right:0; background:#fff;
+  border-top:1px solid var(--line); display:flex; z-index:30;
+  padding-bottom:var(--safe-bottom);
+  box-shadow:0 -6px 20px rgba(10,35,64,.08);
+}
+.navbtn{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:10px 4px 8px; color:var(--muted); }
+.navbtn svg{ width:22px; height:22px; }
+.navbtn span{ font-size:10px; font-weight:600; }
+.navbtn.active{ color:var(--red); }
+.navbtn.active svg{ stroke:var(--red); }
+
+/* ---------- Goal cards ---------- */
+.age-scroll{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:18px; }
+.age-pill{ flex:0 0 auto; border:1.5px solid var(--line); border-radius:20px; padding:9px 15px; font-size:12px; font-weight:700; color:var(--navy); background:#fff; white-space:nowrap; }
+.age-pill.active{ background:var(--gold); border-color:var(--gold); color:var(--navy); }
+
+.goal-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:6px; }
+.goal-card{
+  background:#fff; border:1.5px solid var(--line); border-radius:14px; padding:14px 12px;
+  text-align:left; display:flex; flex-direction:column; gap:8px; min-height:108px;
+}
+.goal-card .gicon{ width:26px; height:26px; }
+.goal-card .gname{ font-size:12.5px; font-weight:700; color:var(--navy); line-height:1.3; }
+.goal-card .gtag{ font-size:9.5px; color:var(--muted); }
+.goal-card.selected{ border-color:var(--gold); background:linear-gradient(135deg,#fff 60%, var(--cream) 100%); }
+
+/* ---------- Investment cards ---------- */
+.invest-card{ background:#fff; border:1px solid var(--line); border-radius:14px; margin-bottom:12px; overflow:hidden; }
+.invest-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; }
+.invest-head .left{ display:flex; align-items:center; gap:12px; }
+.invest-icon{ width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto; }
+.invest-title{ font-size:14px; font-weight:700; color:var(--navy); }
+.invest-sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+.risk-badge{ font-size:9.5px; font-weight:700; padding:3px 8px; border-radius:10px; text-transform:uppercase; letter-spacing:.3px; }
+.risk-low{ background:#E4F5E9; color:#1C7A3D; }
+.risk-mod{ background:#FDF2D8; color:#96700E; }
+.risk-high{ background:#FCE4E4; color:#B3261E; }
+.chevron{ transition:transform .25s ease; color:var(--muted); }
+.invest-card.open .chevron{ transform:rotate(180deg); }
+.invest-body{ max-height:0; overflow:hidden; transition:max-height .3s ease; padding:0 16px; }
+.invest-card.open .invest-body{ max-height:400px; padding:0 16px 16px; }
+.detail-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; }
+.detail-item{ background:var(--cream); border-radius:8px; padding:8px 10px; }
+.detail-item .k{ font-size:9px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); font-weight:700; }
+.detail-item .v{ font-size:12px; font-weight:700; color:var(--navy); margin-top:2px; line-height:1.3; }
+.detail-note{ font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:10px; }
+
+.filter-row{ display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; padding-bottom:2px; }
+
+/* ---------- Calculator tabs ---------- */
+.calc-tabs{ display:flex; background:var(--cream); border-radius:12px; padding:4px; margin-bottom:18px; }
+.calc-tab{ flex:1; text-align:center; padding:9px 4px; border-radius:9px; font-size:11.5px; font-weight:700; color:var(--muted); }
+.calc-tab.active{ background:#fff; color:var(--navy); box-shadow:0 2px 6px rgba(10,35,64,.1); }
+.calc-pane{ display:none; }
+.calc-pane.active{ display:block; }
+
+canvas#growthChart{ width:100%; height:180px; display:block; }
+
+.tax-toggle{ display:flex; border:1.5px solid var(--navy); border-radius:10px; overflow:hidden; margin-bottom:16px; }
+.tax-toggle button{ flex:1; padding:10px; font-size:12.5px; font-weight:700; color:var(--navy); }
+.tax-toggle button.active{ background:var(--navy); color:#fff; }
+
+.breakdown-row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--line); font-size:12.5px; }
+.breakdown-row.total{ border-bottom:none; border-top:1.5px solid var(--navy); margin-top:4px; padding-top:10px; font-weight:800; color:var(--navy); }
+.breakdown-row .lbl{ color:var(--muted); }
+.breakdown-row .val{ font-weight:700; color:var(--ink); }
+
+/* ---------- Chat ---------- */
+#chatwrap{ display:flex; flex-direction:column; height:calc(100vh - 160px); }
+#chatlog{ flex:1; overflow-y:auto; padding:4px 2px 12px; display:flex; flex-direction:column; gap:10px; }
+.msg{ max-width:82%; padding:11px 14px; border-radius:16px; font-size:13.5px; line-height:1.45; }
+.msg.bot{ background:#fff; border:1px solid var(--line); color:var(--ink); border-bottom-left-radius:4px; align-self:flex-start; }
+.msg.user{ background:var(--navy); color:#fff; border-bottom-right-radius:4px; align-self:flex-end; }
+.quick-replies{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+.qr-btn{ border:1.5px solid var(--gold); color:var(--navy); background:var(--gold-light); font-weight:700; font-size:12px; padding:9px 14px; border-radius:18px; }
+.qr-btn:active{ transform:scale(.97); }
+#chat-input-row{ display:flex; gap:8px; padding-top:8px; border-top:1px solid var(--line); }
+#chat-input-row input{ flex:1; border:1.5px solid var(--line); border-radius:20px; padding:11px 16px; font-size:13.5px; outline:none; }
+#chat-input-row button{ width:42px; height:42px; border-radius:50%; background:var(--red); color:#fff; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+
+/* WhatsApp floating button visible from any screen */
+#wa-fab{
+  position:fixed; z-index:40; right:calc(50% - 240px + 18px); bottom:calc(78px + var(--safe-bottom));
+  width:52px; height:52px; border-radius:50%; background:#25D366;
+  display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(37,211,102,.4);
+}
+@media (max-width:480px){ #wa-fab{ right:18px; } }
+
+::-webkit-scrollbar{ display:none; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="topbar">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 40 40" fill="none">
+        <path d="M20 2 L37 9 V20 C37 30 29 36 20 39 C11 36 3 30 3 20 V9 Z" fill="url(#tbGrad)"/>
+        <path d="M13 20 C13 14 20 14 20 20 C20 26 27 26 27 20 C27 14 20 14 20 20 C20 26 13 26 13 20 Z" stroke="#0A2340" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <defs><linearGradient id="tbGrad" x1="0" y1="0" x2="40" y2="40">
+          <stop offset="0%" stop-color="#F0D98C"/><stop offset="100%" stop-color="#C9A227"/>
+        </linearGradient></defs>
+      </svg>
+      <div class="brand-text">Wealth Planner<small>by your Kotak Life advisor</small></div>
+    </div>
+    <div class="advisor-chip">
+      <span>AK</span>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- ================= GOALS SCREEN ================= -->
+    <section class="screen active" id="screen-goals">
+      <div class="eyebrow">Financial Goal Planner</div>
+      <div class="h1">What are you planning for?</div>
+      <div class="lead">Pick your life stage and a goal — we'll work out what it will really cost, and what it takes each month to get there.</div>
+
+      <div class="age-scroll" id="ageScroll"></div>
+
+      <div class="goal-grid" id="goalGrid"></div>
+
+      <div id="goalCalcArea"></div>
+    </section>
+
+    <!-- ================= CALCULATORS SCREEN ================= -->
+    <section class="screen" id="screen-calc">
+      <div class="eyebrow">Tools</div>
+      <div class="h1">Calculators</div>
+      <div class="lead">The three numbers every financial plan is built on: growth, inflation, and tax.</div>
+
+      <div class="calc-tabs">
+        <div class="calc-tab active" data-calc="compound">Compounding</div>
+        <div class="calc-tab" data-calc="inflation">Inflation</div>
+        <div class="calc-tab" data-calc="tax">Income Tax</div>
+      </div>
+
+      <div id="calc-compound" class="calc-pane active"></div>
+      <div id="calc-inflation" class="calc-pane"></div>
+      <div id="calc-tax" class="calc-pane"></div>
+    </section>
+
+    <!-- ================= INVEST SCREEN ================= -->
+    <section class="screen" id="screen-invest">
+      <div class="eyebrow">Where to put your money</div>
+      <div class="h1">Investment options</div>
+      <div class="lead">Every avenue trades off return, risk, liquidity and tax differently. Tap any option for the full picture.</div>
+      <div class="filter-row" id="investFilters"></div>
+      <div id="investList"></div>
+    </section>
+
+    <!-- ================= CHAT SCREEN ================= -->
+    <section class="screen" id="screen-chat">
+      <div class="eyebrow">Talk to your advisor</div>
+      <div class="h1">Let's connect on WhatsApp</div>
+      <div id="chatwrap">
+        <div id="chatlog"></div>
+        <div id="chat-input-row" style="display:none;">
+          <input type="text" id="chatFreeText" placeholder="Type a message…">
+          <button id="chatSendBtn">➤</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <a id="wa-fab" href="#" target="_blank" rel="noopener">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M17.6 6.32A7.85 7.85 0 0 0 12.05 4C7.6 4 4 7.6 4 12.05c0 1.42.37 2.8 1.08 4.02L4 20l4.06-1.06a8.1 8.1 0 0 0 3.98 1.02h.01c4.45 0 8.05-3.6 8.05-8.05a7.94 7.94 0 0 0-2.5-5.6zm-5.55 12.4h-.01a6.7 6.7 0 0 1-3.42-.94l-.24-.14-2.4.63.64-2.34-.16-.24a6.75 6.75 0 0 1-1.04-3.6c0-3.73 3.04-6.77 6.78-6.77a6.73 6.73 0 0 1 4.79 1.99 6.73 6.73 0 0 1 1.98 4.78c0 3.74-3.04 6.78-6.77 6.78zm3.7-5.08c-.2-.1-1.2-.6-1.38-.66-.19-.07-.32-.1-.46.1-.13.2-.52.66-.64.79-.12.14-.24.15-.44.05-.2-.1-.86-.32-1.63-1.01-.6-.54-1.01-1.2-1.13-1.4-.12-.2-.01-.31.09-.4.09-.1.2-.24.3-.36.1-.12.13-.2.2-.34.07-.14.03-.26-.02-.36-.05-.1-.46-1.1-.63-1.5-.16-.4-.33-.34-.46-.35h-.4c-.13 0-.35.05-.53.25-.18.2-.7.68-.7 1.67 0 .98.72 1.93.82 2.06.1.14 1.42 2.16 3.43 3.03.48.2.86.33 1.15.42.48.15.92.13 1.27.08.39-.06 1.2-.49 1.37-.96.17-.48.17-.88.12-.97-.05-.09-.18-.14-.38-.24z"/></svg>
+  </a>
+
+  <div id="bottomnav">
+    <button class="navbtn active" data-screen="screen-goals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L21 8 V21 H3 V8 Z"/><path d="M9 21 V13 H15 V21"/></svg>
+      <span>Goals</span>
+    </button>
+    <button class="navbtn" data-screen="screen-calc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="12" x2="8.01" y2="12"/><line x1="12" y1="12" x2="12.01" y2="12"/><line x1="16" y1="12" x2="16.01" y2="12"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="12" y1="16" x2="12.01" y2="16"/><line x1="16" y1="16" x2="16.01" y2="16"/></svg>
+      <span>Calculators</span>
+    </button>
+    <button class="navbtn" data-screen="screen-invest">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17 L9 11 L13 15 L21 7"/><path d="M15 7 H21 V13"/></svg>
+      <span>Invest</span>
+    </button>
+    <button class="navbtn" data-screen="screen-chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span>Chat</span>
+    </button>
+  </div>
+
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
